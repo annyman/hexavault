@@ -1,0 +1,7 @@
+/temp
+/dist
+/build
+
+hexavault.exe.spec
+main.spec
+passwords.json
