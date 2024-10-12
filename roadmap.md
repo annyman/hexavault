@@ -11,7 +11,9 @@
 - ~~Master Password: Implement a master password system (with bcrypt/argon2 for hashing).~~
 - ~~Encryption: Use cryptography to encrypt and decrypt passwords before storage and retrieval.~~
 - ~~Storage: Use a local file or SQLite database to store the encrypted passwords.~~
-- Password Generator: Implement the generator using secrets for random password generation.
+- ~~Password Generator: Implement the generator using secrets for random password generation.~~
+- Input parsing: Name, Username and tag search
+- FZF: fuzzy search for tags (potential feature not confirmed)
 
 ## Phase 3: Security Enhancements
 

@@ -1,15 +1,16 @@
 from cryptography.fernet import Fernet
 import os
+from tinydb import TinyDB
 
 import lib.hashing as hash
-import lib.storage as storage
 import lib.generator as gen
+import lib.dbms as dbms
     
 key = b'IqLHbWPMEN-IR_J3wynIIxwKa7l46ylJ63gzB7Hl0BQ='
 master = "mypass123"
 # CIPHER = Fernet(Fernet.generate_key())
 CIPHER = Fernet(key)
-pass_db = {}
+pass_db = TinyDB('passwords.json')
 
 while True:
     if os.name == 'nt':  # For Windows
@@ -40,11 +41,8 @@ while True:
     inp = int(input("\n"))
 
     if inp == 1:
-        print('\nUsername: ')
-        user = input()
-        print('Password: ')
-        passwd = input()
-        alert, strength, feedback = gen.check_strength(passwd)
+        entry = dbms.ask_passwd(CIPHER)
+        alert, strength, feedback = gen.check_strength(entry.password)
 
         if alert == True:
             print(f"\nPassword is {strength}")
@@ -52,26 +50,23 @@ while True:
             yes = str(input())
             if yes == "y" or yes == "yes":
                 print("Generating a stronger password...")
-                passwd = gen.gen_random_passwd(14, True, True, True)
-                print(f"New password: {passwd}. Saving it...")
+                entry.password = gen.gen_random_passwd(14, True, True, True)
+                print(f"New password: {entry.password}")
                 input()
-                storage.add_passwd(pass_db, user, passwd, CIPHER)
-                storage.write_passwd('passwords.json', pass_db)
 
         print("Saving password...")
         input()
-        storage.add_passwd(pass_db, user, passwd, CIPHER)
-        storage.write_passwd('passwords.json', pass_db)
+
+        dbms.add_passwd(pass_db, entry, CIPHER)
 
     elif inp == 2:
         print("")
-        storage.read_passwd('passwords.json', CIPHER)
+        dbms.read_passwd(pass_db, CIPHER)
         input()
     elif inp == 3:
-        pass_db = {}
         print("\nRemoving stored passwords...")
         input()
-        os.remove('passwords.json')
+        pass_db.truncate()
     elif inp == 4:
         break
     else:
