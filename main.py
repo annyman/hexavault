@@ -2,10 +2,10 @@ from cryptography.fernet import Fernet
 import os
 from tinydb import TinyDB
 
-import lib.hashing as hash
+import lib.hashing as hashe
 import lib.generator as gen
 import lib.dbms as dbms
-    
+
 key = b'IqLHbWPMEN-IR_J3wynIIxwKa7l46ylJ63gzB7Hl0BQ='
 master = "mypass123"
 # CIPHER = Fernet(Fernet.generate_key())
@@ -20,9 +20,9 @@ while True:
 
     print("Enter master password:")
     given = input()
-    hashed = hash.hash_passwd(given)
+    hashed = hashe.hash_passwd(given)
 
-    if hash.check_passwd(master, hashed):
+    if hashe.check_passwd(master, hashed):
         print("\nMaster password is correct!, letting you in.\n")
         break
     else:
@@ -37,7 +37,8 @@ while True:
     print('1> Enter username and password')
     print('2> Display')
     print('3> Reset')
-    print('4> Exit')
+    print('4> Search')
+    print('5> Exit')
     inp = int(input("\n"))
 
     if inp == 1:
@@ -68,6 +69,15 @@ while True:
         input()
         pass_db.truncate()
     elif inp == 4:
+        print("\nGive the name and tags to search: ")
+        text = input()
+        names, tags = dbms.parse_input(text)
+
+        dbms.read_passwd(dbms.search_name_tag(names, tags, pass_db), CIPHER)
+        input()
+        pass_db.drop_table('search')
+
+    elif inp == 5:
         break
     else:
         print('Invalid input!')

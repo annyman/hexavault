@@ -5,3 +5,5 @@ def encrypt_passwd(cipher, passwd):
 
 def decrypt_passwd(cipher, passwd):
     return cipher.decrypt(passwd).decode() # Decrypt using given cipher key
+
+# pbkdf2 derivation
