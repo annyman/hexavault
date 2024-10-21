@@ -12,7 +12,7 @@
 - ~~Encryption: Use cryptography to encrypt and decrypt passwords before storage and retrieval.~~
 - ~~Storage: Use a local file or SQLite database to store the encrypted passwords.~~
 - ~~Password Generator: Implement the generator using secrets for random password generation.~~
-- Input parsing: Name, Username and tag search
+- ~~Input parsing: Name, Username and tag search~~
 - FZF: fuzzy search for tags (potential feature not confirmed)
 
 ## Phase 3: Security Enhancements
@@ -30,3 +30,11 @@
 
 - Testing: Test encryption, decryption, and password generation features.
 - Packaging: Package the entire program using PyInstaller into an executable.
+
+## To do list
+1. integrating gui
+    - 2fa
+    - options for passwd generation
+    - dashboard
+2. PBKDF2 encryption
+3. installer script

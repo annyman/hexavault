@@ -2,6 +2,7 @@ import dataclasses as dc
 from lib.encryption import *
 from tinydb import TinyDB, Query, where
 from typing import List
+from enum import Enum
 
 @dc.dataclass
 class Passwd:
@@ -9,9 +10,10 @@ class Passwd:
     url: str
     username: str
     password: str
-    tags: List[str] = dc.field(default_factory=list)
-    #strength: enum
-    #salt: int
+    tags: List[str]
+    strength: str
+    salt: str
+    iv: str
 
 def print_passwd(pwd: Passwd):
     for k, v in dc.asdict(pwd).items():
@@ -20,7 +22,7 @@ def print_passwd(pwd: Passwd):
             else:
                 print(f"{k}: {v}")
 
-def ask_passwd(cipher) -> Passwd:
+def ask_passwd() -> Passwd:
     print("Enter Name:")
     name = input()
     print("Enter URL:")
@@ -30,23 +32,35 @@ def ask_passwd(cipher) -> Passwd:
     print("Enter Password:")
     password = input()
     print("Enter Tags:")
-    input()
+    txt = input()
     tags = []
+    words = txt.split()  # Split input by spaces
+    for word in words:
+        if word.startswith('#'):
+            tags.append(word[1:])  # Remove '#' from tag
+    
+    strength = 'default'
+    salt, iv = generate_salt_and_iv()
 
-    return Passwd(name, url, username, password, tags)
+    return Passwd(name, url, username, password, tags, strength, salt, iv)
 
 def load_passwd(entry: dict): # not needed
     return Passwd(**entry)
 
-def add_passwd(db: TinyDB, entry, cipher): # encrypt and add password to db
-    entry.password = encrypt_passwd(cipher, entry.password)
+def add_passwd(db: TinyDB, entry: Passwd, master_password: str): # encrypt and add password to db
+    key = derive_key_argon2(master_password, entry.salt)
+    entry.password = encrypt_passwd(key, entry.password, entry.iv)
     db.insert(dc.asdict(entry))
 
-def read_passwd(db, cipher): # retrieve and decrypt the password:
+def read_passwd(db: TinyDB, master_password: str): # retrieve and decrypt the password:
     for item in db:
-        item['password'] = decrypt_passwd(cipher, item['password'])
+        key = derive_key_argon2(master_password, item['salt'])
+        item['password'] = decrypt_passwd(key, item['password'], item['iv'])
         for k, v in item.items():
-            print(f"{k}: {v}") # print the key value pairs
+            if k == 'salt':
+                break
+            else:
+                print(f"{k}: {v}") # print the key value pairs
         print(f"\n")
 
 def parse_input(input_text):

@@ -42,7 +42,7 @@ while True:
     inp = int(input("\n"))
 
     if inp == 1:
-        entry = dbms.ask_passwd(CIPHER)
+        entry = dbms.ask_passwd()
         alert, strength, feedback = gen.check_strength(entry.password)
 
         if alert == True:
@@ -52,17 +52,19 @@ while True:
             if yes == "y" or yes == "yes":
                 print("Generating a stronger password...")
                 entry.password = gen.gen_random_passwd(14, True, True, True)
+                entry.strength = 'STRONG'
                 print(f"New password: {entry.password}")
                 input()
 
+        entry.strength = strength
         print("Saving password...")
         input()
 
-        dbms.add_passwd(pass_db, entry, CIPHER)
+        dbms.add_passwd(pass_db, entry, master)
 
     elif inp == 2:
         print("")
-        dbms.read_passwd(pass_db, CIPHER)
+        dbms.read_passwd(pass_db, master)
         input()
     elif inp == 3:
         print("\nRemoving stored passwords...")
@@ -73,7 +75,7 @@ while True:
         text = input()
         names, tags = dbms.parse_input(text)
 
-        dbms.read_passwd(dbms.search_name_tag(names, tags, pass_db), CIPHER)
+        dbms.read_passwd(dbms.search_name_tag(names, tags, pass_db), master)
         input()
         pass_db.drop_table('search')
 
