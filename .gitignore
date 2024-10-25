@@ -5,3 +5,8 @@
 hexavault.exe.spec
 main.spec
 passwords.json
+
+/gui/azure.tcl
+/gui/theme
+/gui/gui.py
+/gui/__pycache__

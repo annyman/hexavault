@@ -6,7 +6,7 @@ from argon2 import PasswordHasher
 from argon2.low_level import Type, hash_secret_raw
 
 # Function to generate both a random salt (16 bytes) and IV (16 bytes)
-def generate_salt_and_iv():
+def generate_salt_iv():
     salt = os.urandom(16)
     iv = os.urandom(16)
     salt = base64.b64encode(salt).decode()

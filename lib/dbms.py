@@ -40,7 +40,7 @@ def ask_passwd() -> Passwd:
             tags.append(word[1:])  # Remove '#' from tag
     
     strength = 'default'
-    salt, iv = generate_salt_and_iv()
+    salt, iv = generate_salt_iv()
 
     return Passwd(name, url, username, password, tags, strength, salt, iv)
 
