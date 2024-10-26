@@ -5,7 +5,7 @@ from tinydb import TinyDB
 import lib.hashing as hashe
 import lib.generator as gen
 import lib.dbms as dbms
-import gui.gui as gui
+import lib.sync as sync
 # ✔
 
 master = "mypass123" # ✔
@@ -29,17 +29,19 @@ while True:
         break
     else:
         print("\nIncorrect Master password! booooo.\n")
+# ✔
 
 while True:
-    gui.mainloop_tk()
-
     cls()
 
     print('1> Enter username and password')
     print('2> Display')
     print('3> Reset')
     print('4> Search')
-    print('5> Exit')
+    print('5> Export')
+    print('6> Import')
+    print('7> Exit')
+    
 
     try:
         inp = int(input("\n"))
@@ -90,6 +92,10 @@ while True:
         input()
         pass_db.drop_table('search')
     elif inp == 5:
+        sync.export_encrypted_json('passwords.json', 'export.json','export.key')
+    elif inp == 6:
+        sync.import_encrypted_json('export.json', 'export.key', 'passwords.json')
+    elif inp == 7:
         quit()
     elif type(inp) != int:
         print('Invalid input!')
