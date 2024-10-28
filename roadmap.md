@@ -33,8 +33,8 @@
 
 ## To do list
 1. integrating gui
-    - 2fa
+    - ~~2fa~~
     - options for passwd generation
     - dashboard
-2. PBKDF2 encryption
-3. installer script
+2. ~~PBKDF2 encryption~~
+3. ~~installer script~~

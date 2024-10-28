@@ -1,9 +1,9 @@
 import os
 import base64
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.backends import default_backend
-from argon2 import PasswordHasher
-from argon2.low_level import Type, hash_secret_raw
 
 # Function to generate both a random salt (16 bytes) and IV (16 bytes)
 def generate_salt_iv():
@@ -13,18 +13,17 @@ def generate_salt_iv():
     iv = base64.b64encode(iv).decode()
     return salt, iv
 
-# Function to derive a key from the master password and salt using Argon2
-def derive_key_argon2(master_password, salt):
+# Function to derive a key from the master password and salt using PBKDF2
+def derive_key_pbkdf2(master_password, salt):
     salt = base64.b64decode(salt)
-    key = hash_secret_raw(
-        secret=master_password.encode(),  # The master password
-        salt=salt,  # The generated salt
-        time_cost=3,  # Number of iterations
-        memory_cost=2**16,  # Memory usage (64MB)
-        parallelism=1,  # Parallel threads
-        hash_len=32,  # AES-256 key length (32 bytes)
-        type=Type.I  # Use Argon2i (memory-hard)
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),  # Hash function
+        length=32,  # AES-256 key length (32 bytes)
+        salt=salt,
+        iterations=100000,  # Number of iterations
+        backend=default_backend()
     )
+    key = kdf.derive(master_password.encode())  # Derive the key
     return key
 
 # Function to encrypt a password with a given key and IV

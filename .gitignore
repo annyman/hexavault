@@ -4,6 +4,7 @@
 
 hexavault.exe.spec
 main.spec
+legacy_main.spec
 passwords.json
 
 /gui/azure.tcl

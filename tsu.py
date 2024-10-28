@@ -10,10 +10,11 @@ import lib.generator as generator
 import lib.encryption as enc
 import lib.dbms as dbms
 import lib.sync as sync
+import lib.email2fa as tsufa
 
 pass_db = TinyDB('passwords.json')
 
-email_origin = "0" # the same as the below do what u want
+email_origin = "annyman.81194@protonmail.com" # the same as the below do what u want
 master_pass = "0" # set ur jason file and define it as master_pass
 otp_origin = "0"  # this for OTP idk what u will do for it
 
@@ -102,15 +103,17 @@ class LoginWindow(tk.Toplevel):
         if hashe.check_passwd(master_pass, hashed_mp) and hashe.check_passwd(email_origin, hashed_ml):
             print(f"master password = {masterp}, email = {email}")  # where "masterp" is the variable containing the master password you get from text box
             self.destroy()
-            DualFA(self.copy_image, self.search_icons)
+            otp_origin = tsufa.send_2fa(email_origin)
+            DualFA(self.copy_image, self.search_icons, otp_origin)
 
 class DualFA(tk.Tk):
-    def __init__(self, copy_image, search_icons, *args, **kwargs):
+    def __init__(self, copy_image, search_icons, otp, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.title("Dual-Factor Authentication")
         self.geometry("400x200")
         self.copy_image = copy_image
         self.search_icons = search_icons
+        self.otp = otp
 
         # Load Azure theme
         self.load_azure_theme()
@@ -132,13 +135,13 @@ class DualFA(tk.Tk):
             print(f"Theme file {theme_file} not found. Using default theme.")
 
     def check_otp(self):
-        otp=self.dual_fa_entry.get()
+        otp = self.dual_fa_entry.get()
 
-        if not otp or otp != otp_origin:  # Compare with the predefined OTP
+        if not otp or otp != str(self.otp):  # Compare with the predefined OTP
             messagebox.showwarning("Input Error", "OTP is incorrect. Please try again.")
             return
 
-        if  otp == otp_origin:
+        if  otp == str(self.otp):
             self.destroy()
             MainPage(self.copy_image, self.search_icons)
 
@@ -244,14 +247,14 @@ class MainPage(tk.Tk):
         self.strong_passwords_label.config(text=f"Strong Passwords\n{strong_count}")
 
     def import_passwords(self):
-        error = sync.import_encrypted_json('export.json', 'export.key', 'passwords.json', [master_pass, email_origin])
+        error = sync.import_encrypted_json('export.json', 'export.key', 'passwords.json', [master_pass + "\n", email_origin + "\n"])
         if not error:
             messagebox.showinfo("Success", "Imported successfully!")  # replace it later with actual import logic
         else:
             messagebox.showinfo("Failed", "Master password or email is not matching!")  # replace it later with actual import logic
 
     def export_passwords(self):
-        sync.export_encrypted_json('passwords.json', 'export.json','export.key', [master_pass, email_origin])
+        sync.export_encrypted_json('passwords.json', 'export.json','export.key', [master_pass + "\n", email_origin + "\n"])
         messagebox.showinfo("Success", "Exported successfully!")   # replace it later with actual export logic
 
     def open_add_password_window(self, copy_image, search_icons):
