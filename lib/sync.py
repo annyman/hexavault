@@ -3,12 +3,13 @@ import json
 import os
 
 import lib.hashing as hashe
+import lib.mailing as mailing
 
 def generate_key():
     # Generate a new Fernet symmetric key
     return Fernet.generate_key()
 
-def export_encrypted_json(input_file, output_file, key_file, snapshot):
+def export_encrypted_json(input_file, output_file, key_file, snapshot, given_email):
     # Read the JSON data from passwords.json
     with open(input_file, 'r') as f:
         data = json.load(f)
@@ -32,6 +33,12 @@ def export_encrypted_json(input_file, output_file, key_file, snapshot):
     with open(key_file, 'wb') as f:
         f.writelines(snapshot)
     
+    subject = "Here is your EXPORT files DO NOT share them"
+    body = "Attached are the export files for your passwords. Please handle them securely."
+    attachment_paths = [os.getcwd() + '/export.json', os.getcwd() + '/export.key']  # Add paths to your files
+
+    mailing.send_email_with_attachments(given_email, subject, body, attachment_paths)
+
     print(f"Data encrypted and saved to {output_file}. Key saved to {key_file}.")
 
 def import_encrypted_json(encrypted_file, key_file, output_file, snapshot):

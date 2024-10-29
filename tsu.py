@@ -10,13 +10,9 @@ import lib.generator as generator
 import lib.encryption as enc
 import lib.dbms as dbms
 import lib.sync as sync
-import lib.email2fa as tsufa
+import lib.mailing as mailing
 
 pass_db = TinyDB('passwords.json')
-
-email_origin = "annyman.81194@protonmail.com" # the same as the below do what u want
-master_pass = "0" # set ur jason file and define it as master_pass
-otp_origin = "0"  # this for OTP idk what u will do for it
 
 # Sample registry data
 #brh
@@ -96,6 +92,10 @@ class LoginWindow(tk.Toplevel):
         hashed_mp = hashe.hash_passwd(masterp)
         hashed_ml = hashe.hash_passwd(email)
 
+        global master_pass;
+        global email_origin;
+        master_pass, email_origin = masterp, email
+
         if not masterp or not email or not hashe.check_passwd(master_pass, hashed_mp) or not hashe.check_passwd(email_origin, hashed_ml):
             messagebox.showwarning("Input Error", "password or Email is incorrect. Please try again.")
             return
@@ -103,7 +103,7 @@ class LoginWindow(tk.Toplevel):
         if hashe.check_passwd(master_pass, hashed_mp) and hashe.check_passwd(email_origin, hashed_ml):
             print(f"master password = {masterp}, email = {email}")  # where "masterp" is the variable containing the master password you get from text box
             self.destroy()
-            otp_origin = tsufa.send_2fa(email_origin)
+            otp_origin = mailing.send_2fa(email_origin)
             DualFA(self.copy_image, self.search_icons, otp_origin)
 
 class DualFA(tk.Tk):
@@ -236,9 +236,13 @@ class MainPage(tk.Tk):
         moderate_count = 0
         strong_count = 0
 
-        # Count repeated passwords using Counter
-        password_counts = 0
-#        repeated_passwords = sum(1 for count in password_counts.values() if count > 1)
+        for app in registry_data:
+            if app['strength'] == "WEAK":
+                weak_count += 1
+            elif app['strength'] == "MODERATE":
+                moderate_count += 1
+            elif app['strength'] == "STRONG":
+                strong_count += 1
 
         # Update the dashboard labels with values
         self.repeated_passwords_label.config(text=f"Repeated Passwords\n0")
@@ -254,7 +258,7 @@ class MainPage(tk.Tk):
             messagebox.showinfo("Failed", "Master password or email is not matching!")  # replace it later with actual import logic
 
     def export_passwords(self):
-        sync.export_encrypted_json('passwords.json', 'export.json','export.key', [master_pass + "\n", email_origin + "\n"])
+        sync.export_encrypted_json('passwords.json', 'export.json','export.key', [master_pass + "\n", email_origin + "\n"], email_origin)
         messagebox.showinfo("Success", "Exported successfully!")   # replace it later with actual export logic
 
     def open_add_password_window(self, copy_image, search_icons):
@@ -271,6 +275,11 @@ class AddPasswordWindow(tk.Toplevel):
         self.copy_image = copy_image
         self.search_icons = search_icons
         self.parent = parent
+        self.use_nums = False
+        self.use_chars = False
+        self.use_spl = False
+        self.should_gen = False
+        self.attempts = False
 
         self.columnconfigure(0, weight=1)
         self.columnconfigure(5, weight=1)
@@ -307,9 +316,11 @@ class AddPasswordWindow(tk.Toplevel):
         self.eye_button.grid(row=0, column=1, padx=3)
         self.eye_button.bind("<Button-1>", self.toggle_password)
 
+        self.gen_pass = ttk.Button(self, text="Generate a Strong Password", command=self.open_generate_pass)
+        self.gen_pass.grid(row=10, column=1, padx=10, pady=5)
         # Save button
         self.save_button = ttk.Button(self, text="Save", command=self.save_password)
-        self.save_button.grid(row=10, column=1, padx=10, pady=15)
+        self.save_button.grid(row=10, column=2, padx=10, pady=15)
 
     def toggle_password(self, event=None):
         """Toggle password visibility."""
@@ -322,24 +333,97 @@ class AddPasswordWindow(tk.Toplevel):
             self.eye_button.config(image=self.eye_open_image2)
             self.show_password = True
 
+    def open_generate_pass(self):
+        Generate_Pass(self)
+
     def save_password(self):
         # Retrieve data from entries
         name = self.name_entry.get().strip()
         tag = self.tag_entry.get()
         username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
+        if self.should_gen == True:
+            password = generator.gen_random_passwd(16, self.use_chars, self.use_nums, self.use_spl)
+        else:
+            password = self.password_entry.get().strip()
         entry = dbms.ask_passwd(name, username, password, tag)
-
         # Validate inputs
         if not name or not username or not password:
             messagebox.showwarning("Input Error", "All fields must be filled!")
             return
 
-        dbms.add_passwd(registry_data, entry, master_pass)
+        alert, strength, feedback = generator.check_strength(password)
+        entry.strength = strength
 
+        if self.attempts == True:
+            messagebox.showinfo("Success", "Password added successfully!")
+            dbms.add_passwd(registry_data, entry, master_pass)
+            self.destroy() # Refresh the listbox in HomePage
+
+        self.attempts = True
+
+        if alert == True:
+            messagebox.showwarning("Password Strength", strength + " password. Consider using a stronger password generated by our app")
+            return
         # Notify user and close window
-        messagebox.showinfo("Success", "Password added successfully!")
-        self.destroy() # Refresh the listbox in HomePage
+        else:
+            messagebox.showinfo("Success", "Password added successfully!")
+            dbms.add_passwd(registry_data, entry, master_pass)
+            self.destroy() # Refresh the listbox in HomePage
+
+
+class Generate_Pass(tk.Toplevel):  # Change tk.Tk to tk.Toplevel
+    def __init__(self, parent):
+        super().__init__(parent)  # Pass parent to the superclass
+        self.parent = parent
+        self.title("Password Generator")
+        self.geometry("300x200")
+        self.include_numbers = tk.BooleanVar()
+        self.include_symbols = tk.BooleanVar()
+        self.include_characters = tk.BooleanVar()
+        self.create_widgets()
+
+    def create_widgets(self):
+        ttk.Label(self, text="Include in Password:").pack(pady=15)
+
+        include_numbers_radio = ttk.Checkbutton(
+            self,  # Use self instead of self.parent
+            text="Numbers   ",
+            variable=self.include_numbers,
+            onvalue=True,
+            offvalue=False
+        )
+        include_numbers_radio.pack()
+
+        include_symbols_radio = ttk.Checkbutton(
+            self,  # Use self instead of self.parent
+            text="Symbols   ",
+            variable=self.include_symbols,
+            onvalue=True,
+            offvalue=False
+        )
+        include_symbols_radio.pack()
+
+        include_characters_radio = ttk.Checkbutton(
+            self,  # Use self instead of self.parent
+            text="Uppercase",
+            variable=self.include_characters,
+            onvalue=True,
+            offvalue=False
+        )
+        include_characters_radio.pack()
+
+        generate_button = ttk.Button(self, text="Generate Password", command=self.generate_password)
+        generate_button.pack(pady=10)
+
+    def generate_password(self):
+        self.parent.use_nums = self.include_numbers.get()
+        self.parent.use_spl = self.include_symbols.get()
+        self.parent.use_chars = self.include_characters.get()
+
+        self.parent.should_gen = True
+        ######Add your password generation logic here currently just printing the selected options#####
+        print(f"Numbers: {self.parent.use_nums}, Symbols: {self.parent.use_spl}, Characters: {self.parent.use_chars}")
+
 
 
 class HomePage(tk.Toplevel):
@@ -348,6 +432,11 @@ class HomePage(tk.Toplevel):
         self.title("HexaVault")
         self.geometry("600x400")
         self.parent = parent
+
+        self.use_nums = False
+        self.use_chars = False
+        self.use_spl = False
+        self.should_gen = False
 
         # Store images to prevent garbage collection
         self.eye_open_image = eye_open_image
@@ -409,6 +498,9 @@ class HomePage(tk.Toplevel):
         self.copy_button.grid(row=0, column=2, padx=5)
         self.copy_button.bind("<Button-1>", self.copy_to_clipboard)
 
+        self.gen_pass = ttk.Button(self.details_panel, text="Generate a Strong Password", command=self.open_generate_pass)
+        self.gen_pass.pack(pady=15)
+
         # Save button
         self.save_button = ttk.Button(self.details_panel, text="Save", command=self.save_value)
         self.save_button.pack(pady=10)
@@ -425,6 +517,9 @@ class HomePage(tk.Toplevel):
             self.password_entry.config(show="")
             self.eye_button.config(image=self.eye_open_image)
             self.show_password = True
+
+    def open_generate_pass(self):
+        Generate_Pass(self)
 
     def copy_to_clipboard(self, event=None):
         self.clipboard_clear()
@@ -479,8 +574,16 @@ class HomePage(tk.Toplevel):
         name = self.name_entry.get().strip()
         tag = self.tag_entry.get()
         username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
+        if self.should_gen == True:
+            password = generator.gen_random_passwd(16, self.use_chars, self.use_nums, self.use_spl)
+        else:
+            password = self.password_entry.get().strip()
+        
+        alert, strength, feedback = generator.check_strength(password)
         entry = dbms.ask_passwd(name, username, password, tag)
+        entry.strength = strength
+        if len(entry.tag) == 0:
+            entry.tag = tag.split()
 
         # Validate inputs
         if not name or not username or not password:

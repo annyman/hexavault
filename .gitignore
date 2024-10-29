@@ -11,4 +11,4 @@ passwords.json
 /gui/theme
 /gui/gui.py
 /gui/__pycache__
-/lib/email2fa.py
+/lib/mailing.py
